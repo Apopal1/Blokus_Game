@@ -377,3 +377,383 @@ fetch('/api.php?endpoint=board', {
 *   Να είσαι πολύ προσεκτικός με την ασφάλεια του API σου και να ακολουθείς τις καλές πρακτικές για την ανάπτυξη ασφαλών εφαρμογών.
 
 Αυτή η απάντηση σου δίνει μια κατεύθυνση για το πώς να δημιουργήσεις ένα API για την εφαρμογή σου. Ελπίζω να σε βοηθήσει!
+
+Λόγω του μεγάλου εύρους των αλλαγών που απαιτούνται για τη δημιουργία ενός ολοκληρωμένου API, δεν μπορώ να τροποποιήσω πλήρως τα αρχεία σου (`index.php` και `functions.php`) σε αυτήν την απάντηση. Ωστόσο, μπορώ να σου δώσω ένα παράδειγμα για το πώς θα τροποποιούσες τα αρχεία σου ώστε να προσθέσεις API endpoints, και να σε καθοδηγήσω για τις υπόλοιπες αλλαγές.
+
+**1. Δημιουργία του αρχείου `api.php`:**
+
+Δημιούργησε ένα νέο αρχείο με όνομα `api.php` και πρόσθεσε τον παρακάτω κώδικα:
+
+```php
+<?php
+session_start();
+include 'functions.php';
+
+// Σύνδεση με τη βάση δεδομένων
+$conn = getDbConnection();
+
+// Ρύθμιση του header για να υποδείξει ότι η απάντηση είναι σε μορφή JSON
+header('Content-Type: application/json');
+
+// Λήψη του endpoint που ζητήθηκε
+$endpoint = $_GET['endpoint'] ?? ''; // Χρησιμοποιούμε το $_GET για απλότητα
+
+switch ($endpoint) {
+    case 'register':
+        handleRegister($conn);
+        break;
+    case 'login':
+        handleLogin($conn);
+        break;
+    case 'board':
+        handleBoard();
+        break;
+    case 'place_piece':
+        handlePlacePiece($conn);
+        break;
+    case 'available_pieces':
+        handleAvailablePieces();
+        break;
+    case 'score':
+        handleScore();
+        break;
+    case 'logout':
+        handleLogout();
+        break;
+    default:
+        http_response_code(400); // Bad Request
+        echo json_encode(['error' => 'Μη έγκυρο endpoint.']);
+}
+
+// Κλείσιμο σύνδεσης με τη βάση δεδομένων
+$conn->close();
+
+// --- Functions to handle each endpoint ---
+
+function handleRegister($conn) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $firstname = $_POST['firstname'] ?? '';
+        $lastname = $_POST['lastname'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $username = $_POST['username'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        // Έλεγχος αν τα πεδία είναι συμπληρωμένα
+        if (empty($firstname) || empty($lastname) || empty($email) || empty($username) || empty($password)) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'Όλα τα πεδία είναι υποχρεωτικά.']);
+            return;
+        }
+
+        // Κλήση της συνάρτησης registerUser από το functions.php
+        registerUser($conn, $firstname, $lastname, $email, $username, $password);
+    } else {
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Μόνο η μέθοδος POST επιτρέπεται.']);
+    }
+}
+
+function handleLogin($conn) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $username = $_POST['username'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        // Έλεγχος αν τα πεδία είναι συμπληρωμένα
+        if (empty($username) || empty($password)) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'Όλα τα πεδία είναι υποχρεωτικά.']);
+            return;
+        }
+
+        // Κλήση της συνάρτησης loginUser από το functions.php
+        loginUser($conn, $username, $password);
+    } else {
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Μόνο η μέθοδος POST επιτρέπεται.']);
+    }
+}
+
+function handleBoard() {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Δεν είστε συνδεδεμένοι.']);
+            return;
+        }
+
+        echo json_encode(['board' => $_SESSION['board']]);
+    } else {
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Μόνο η μέθοδος GET επιτρέπεται.']);
+    }
+}
+
+function handlePlacePiece($conn) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Δεν είστε συνδεδεμένοι.']);
+            return;
+        }
+
+        $pieceKey = $_POST['piece'] ?? '';
+        $x = (int)$_POST['x'] ?? 0;
+        $y = (int)$_POST['y'] ?? 0;
+        $rotate = isset($_POST['rotate']) ? true : false;
+
+        // Έλεγχος αν τα πεδία είναι συμπληρωμένα
+        if (empty($pieceKey) || !is_numeric($x) || !is_numeric($y)) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'Όλα τα πεδία είναι υποχρεωτικά.']);
+            return;
+        }
+
+        // Κλήση της συνάρτησης placePiece από το functions.php
+        $result = placePiece($pieceKey, $x, $y, $rotate);
+
+        if ($result === true) {
+            echo json_encode(['message' => 'Το κομμάτι τοποθετήθηκε επιτυχώς!']);
+        } else {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => $result]); // Επιστρέφουμε το μήνυμα σφάλματος
+        }
+
+    } else {
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Μόνο η μέθοδος POST επιτρέπεται.']);
+    }
+}
+
+function handleAvailablePieces() {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Δεν είστε συνδεδεμένοι.']);
+            return;
+        }
+
+        echo json_encode(['available_pieces' => $_SESSION['available_pieces']]);
+    } else {
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Μόνο η μέθοδος GET επιτρέπεται.']);
+    }
+}
+
+function handleScore() {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Δεν είστε συνδεδεμένοι.']);
+            return;
+        }
+
+        $score = calculateScore();
+        echo json_encode(['score' => $score]);
+    } else {
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Μόνο η μέθοδος GET επιτρέπεται.']);
+    }
+}
+
+function handleLogout() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        logoutUser();
+        echo json_encode(['message' => 'Αποσυνδεθήκατε επιτυχώς!']);
+    } else {
+        http_response_code(405); // Method Not Allowed
+        echo json_encode(['error' => 'Μόνο η μέθοδος POST επιτρέπεται.']);
+    }
+}
+
+?>
+```
+
+**2. Τροποποίηση του `functions.php`:**
+
+*   **registerUser()**: Αφαίρεσε το `echo` από τη συνάρτηση `registerUser()` και αντικατάστησέ το με `return true` σε περίπτωση επιτυχίας και `return` με το μήνυμα σφάλματος σε περίπτωση αποτυχίας.
+
+```php
+function registerUser($conn, $firstname, $lastname, $email, $username, $password) {
+    $password = password_hash($password, PASSWORD_DEFAULT);
+
+    // Έλεγχος αν το username ή το email υπάρχει ήδη
+    $checkQuery = "SELECT id FROM Users WHERE username = ? OR email = ?";
+    $stmtCheck = $conn->prepare($checkQuery);
+    $stmtCheck->bind_param("ss", $username, $email);
+    $stmtCheck->execute();
+    $stmtCheck->store_result();
+
+    if ($stmtCheck->num_rows > 0) {
+        return 'Το όνομα χρήστη ή το email υπάρχει ήδη. Παρακαλώ επιλέξτε άλλο.';
+    } else {
+        $query = "INSERT INTO Users (firstname, lastname, email, username, password, score) VALUES (?, ?, ?, ?, ?, 0)";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("sssss", $firstname, $lastname, $email, $username, $password);
+
+        if ($stmt->execute()) {
+            return true; // Επιστρέφουμε true σε περίπτωση επιτυχίας
+        } else {
+            return 'Σφάλμα κατά την εγγραφή: ' . $stmt->error;
+        }
+    }
+    $stmtCheck->close();
+}
+```
+
+*   **loginUser()**: Όπως και με το `registerUser()`, αφαίρεσε το `echo` και αντικατάστησέ το με `return true` σε περίπτωση επιτυχίας και `return` με το μήνυμα σφάλματος σε περίπτωση αποτυχίας.  Επίσης, αποθήκευσε τα δεδομένα του χρήστη σε ένα array και επέστρεψέ το.
+
+```php
+function loginUser($conn, $username, $password) {
+    $query = "SELECT id, password FROM Users WHERE username = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($id, $hashed_password);
+        $stmt->fetch();
+
+        if (password_verify($password, $hashed_password)) {
+            $_SESSION['user_id'] = $id;
+            // Επανα-αρχικοποίηση του πίνακα και των κομματιών στην σύνδεση
+            // για να ξεκινήσει ένα νέο παιχνίδι ή να φορτώσει το προηγούμενο
+            // (η φόρτωση προηγούμενου παιχνιδιού θα απαιτούσε επιπλέον λογική)
+            $_SESSION['board'] = array_fill(0, 20, array_fill(0, 20, '-'));
+            $_SESSION['pieces_placed_count'] = 0;
+            $_SESSION['available_pieces'] = [
+                'L1' => [['-', '-', 'L'], ['L', 'L', 'L']], 
+                'I4' => [['I'], ['I'], ['I'], ['I']], 
+                'O' => [['O', 'O'], ['O', 'O']],
+            ];
+            $_SESSION['used_pieces'] = [];
+
+            return true; // Επιστρέφουμε true σε περίπτωση επιτυχίας
+        } else {
+            return 'Λάθος κωδικός πρόσβασης.';
+        }
+    } else {
+        return 'Το όνομα χρήστη δεν υπάρχει.';
+    }
+}
+```
+
+*   **placePiece()**:  Αφαίρεσε το `echo` και επέστρεψε `true` αν η τοποθέτηση έγινε επιτυχώς, αλλιώς επέστρεψε το μήνυμα λάθους.
+
+```php
+function placePiece($pieceKey, $piece, $x, $y) {
+    $pieceHeight = count($piece);
+    $pieceWidth = count($piece[0]);
+    $board = $_SESSION['board'];
+    // Ο χαρακτηρισμός του κομματιού θα είναι ο πρώτος χαρακτήρας του key του κομματιού
+    // π.χ., για το 'L1' θα είναι 'L'
+    $pieceChar = $pieceKey[0]; 
+
+    // --- Βήμα 1: Έλεγχος αν το κομμάτι έχει ήδη χρησιμοποιηθεί ---
+    if (isset($_SESSION['used_pieces'][$pieceKey])) {
+        return 'Αυτό το κομμάτι έχει ήδη χρησιμοποιηθεί.';
+    }
+
+    // --- Βήμα 2: Έλεγχος αν το κομμάτι χωράει στο ταμπλό ---
+    if ($x < 0 || $y < 0 || $x + $pieceWidth > 20 || $y + $pieceHeight > 20) {
+        return 'Το κομμάτι δεν χωράει στο ταμπλό στις καθορισμένες θέσεις.';
+    }
+
+    // --- Βήμα 3: Έλεγχος για επικάλυψη με υπάρχοντα κομμάτια ---
+    for ($i = 0; $i < $pieceHeight; $i++) {
+        for ($j = 0; $j < $pieceWidth; $j++) {
+            if ($piece[$i][$j] != '-' && $board[$y + $i][$x + $j] != '-') {
+                return 'Η θέση είναι κατειλημμένη. Προσπαθήστε σε άλλη θέση.';
+            }
+        }
+    }
+
+    // --- Βήμα 4: Εφαρμογή κανόνων Blokus ---
+    $piecesPlacedCount = $_SESSION['pieces_placed_count'];
+
+    if ($piecesPlacedCount === 0) { // Αυτή είναι η πρώτη κίνηση του παίκτη
+        // Κανόνας 1: Το πρώτο κομμάτι πρέπει να καλύπτει μια γωνία
+        $corners = [
+            ['x' => 0, 'y' => 0],
+            ['x' => 19, 'y' => 0],
+            ['x' => 0, 'y' => 19],
+            ['x' => 19, 'y' => 19]
+        ];
+        $isCornerCovered = false;
+        for ($i = 0; $i < $pieceHeight; $i++) {
+            for ($j = 0; $j < $pieceWidth; $j++) {
+                if ($piece[$i][$j] != '-') { // Αν είναι μέρος του κομματιού
+                    $currentX = $x + $j;
+                    $currentY = $y + $i;
+                    foreach ($corners as $corner) {
+                        if ($currentX == $corner['x'] && $currentY == $corner['y']) {
+                            $isCornerCovered = true;
+                            break 2; // Έξοδος από τα loops
+                        }
+                    }
+                }
+            }
+        }
+        if (!$isCornerCovered) {
+            return 'Το πρώτο σας κομμάτι πρέπει να καλύπτει μία από τις τέσσερις γωνίες του ταμπλό.';
+        }
+
+    } else { // Επόμενες κινήσεις
+        // Κανόνας 2: Πρέπει να αγγίζει τουλάχιστον μία γωνία ενός δικού του κομματιού
+        if (!touchesCorner($board, $piece, $y, $x, $pieceChar)) {
+            return 'Κάθε επόμενο κομμάτι πρέπει να αγγίζει τουλάχιστον μία γωνία ενός δικού σας κομματιού που βρίσκεται ήδη στο ταμπλό.';
+        }
+
+        // Κανόνας 3: Δεν πρέπει να αγγίζει δικά του κομμάτια κατά μήκος μιας πλευράς
+        if (touchesSide($board, $piece, $y, $x, $pieceChar)) {
+            return 'Δεν επιτρέπεται να αγγίζετε δικά σας κομμάτια κατά μήκος μιας πλευράς.';
+        }
+    }
+
+    // --- Βήμα 5: Τοποθέτηση του κομματιού στον πίνακα ---
+    for ($i = 0; $i < $pieceHeight; $i++) {
+        for ($j = 0; $j < $pieceWidth; $j++) {
+            if ($piece[$i][$j] != '-') { // Place only the actual piece parts
+                $_SESSION['board'][$y + $i][$x + $j] = $piece[$i][$j];
+            }
+        }
+    }
+
+    $_SESSION['pieces_placed_count']++; // Αυξάνουμε τον μετρητή κομματιών
+    $_SESSION['used_pieces'][$pieceKey] = true; // Σημειώνουμε το κομμάτι ως χρησιμοποιημένο
+
+    return true;
+}
+```
+
+**3. Τροποποίηση του `index.php`:**
+
+*   Αφαίρεσε τις φόρμες εγγραφής και σύνδεσης από το `index.php`, καθώς θα χρησιμοποιήσεις το API για αυτό.
+*   Αφαίρεσε τον κώδικα που χειρίζεται την τοποθέτηση κομματιών, καθώς αυτό θα γίνεται μέσω του API.
+*   Τροποποίησε τον κώδικα για να χρησιμοποιήσεις JavaScript για να καλείς τα API endpoints και να εμφανίζεις τα αποτελέσματα στην ιστοσελίδα.
+
+**Παράδειγμα κλήσης του API με JavaScript:**
+
+```javascript
+fetch('/api.php?endpoint=board', {
+    method: 'GET',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+})
+.then(response => response.json())
+.then(data => {
+    console.log('Board:', data.board);
+})
+.catch(error => {
+    console.error('Error:', error);
+});
+```
+
+**Σημαντικές Παρατηρήσεις:**
+
+*   Αυτό είναι μόνο ένα βασικό παράδειγμα. Θα χρειαστεί να προσθέσεις περισσότερη λογική για να χειριστείς όλα τα πιθανά σενάρια και να παρέχεις μια καλύτερη εμπειρία χρήστη.
+*   Βεβαιώσου ότι έχεις κάνει τις απαραίτητες αλλαγές στα αρχεία σου και ότι έχεις δοκιμάσει όλα τα API endpoints για να βεβαιωθείς ότι λειτουργούν σωστά.
+*   Να είσαι πολύ προσεκτικός με την ασφάλεια του API σου και να ακολουθείς τις καλές πρακτικές για την ανάπτυξη ασφαλών εφαρμογών.
+
+Αυτή η απάντηση σου δίνει μια κατεύθυνση για το πώς να δημιουργήσεις ένα API για την εφαρμογή σου. Ελπίζω να σε βοηθήσει!

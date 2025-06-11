@@ -1,0 +1,3 @@
+*.php linguist-language=PHP
+.project linguist-generated
+.classpath linguist-generated
