@@ -1,4 +1,5 @@
-<?php
+<?php //Υπαρχει ενα αρχειο το api  οπου εχει ολες τις απαραιτητες αλλαγες ωστε να γινει ενα barebone api με τις πολυ βασικες λειτουργειες
+
 session_start();
 
 // Include functions file
@@ -17,9 +18,9 @@ loginUser($conn);
 logoutUser();
   
 // Initialize board if logged in and no board is set
-initializeBoard(); // Χρησιμοποιούμε τη συνάρτηση αρχικοποίησης
+initializeBoard(); // Χρησιμοποιούμε τη συνάρτηση αρχικοποίησηςa
 
-// Handle piece placement and rotation
+// Handle piece placement and rotationnnnn 
 if (isset($_POST['place_piece'])) {
     $pieceKey = $_POST['piece']; // Piece selected (e.g., L1, I4, O)
     $x = (int)$_POST['x'];       // X coordinate
