@@ -18,7 +18,7 @@ loginUser($conn);
 logoutUser();
   
 // Initialize board if logged in and no board is set
-initializeBoard(); // Χρησιμοποιούμε τη συνάρτηση αρχικοποίησηςa
+initializeBoard(); // Χρησιμοποιούμε τη συνάρτηση αρχικοποίησηςa adad
 
 // Handle piece placement and rotationnnnn 
 if (isset($_POST['place_piece'])) {
