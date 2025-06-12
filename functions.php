@@ -116,10 +116,11 @@ function logoutUser() {
     }
 }
 
+
 // Display the game board
 function displayBoard() {
     echo "<table border='1' style='border-collapse: collapse; text-align: center; border-color: #ccc; margin-top: 20px;'>";
-    echo "<thead><tr><th></th>"; // Άδειο κελί για την αριστερή πάνω γωνία
+    echo "<thead><tr><th></th>"; // Άδειο κελί για την αριστερή πάνω γωνίααα
     for ($col = 0; $col < 20; $col++) {
         echo "<th style='width: 25px; height: 25px; background-color: #f0f0f0;'>" . $col . "</th>";
     }
@@ -152,6 +153,7 @@ function isValidCell($r, $c) {
     return $r >= 0 && $r < 20 && $c >= 0 && $c < 20;
 }
 
+
 // Helper: Check if the piece touches another piece of the same type by side
 function touchesSide($board, $piece, $y, $x, $pieceChar) {
     $pieceHeight = count($piece);
@@ -173,6 +175,7 @@ function touchesSide($board, $piece, $y, $x, $pieceChar) {
     }
     return false;
 }
+
 
 // Helper: Check if the piece touches another piece of the same type by corner
 function touchesCorner($board, $piece, $y, $x, $pieceChar) {
@@ -212,6 +215,7 @@ function calculateScore() {
     }
     return $score;
 }
+    
 
 // Function to place the piece on the board with all Blokus rules
 function placePiece($pieceKey, $piece, $x, $y) {
@@ -303,7 +307,7 @@ function placePiece($pieceKey, $piece, $x, $y) {
 
     echo "<p style='color:green;'>Το κομμάτι τοποθετήθηκε επιτυχώς!</p>";
 }
-
+ 
 // Function to update piece position in the database (this is more for logging moves)
 function updatePieceInDb($conn, $user_id, $pieceKey, $x, $y) {
     // Στο Blokus, δεν ενημερώνουμε απλά μια θέση, αλλά καταγράφουμε την κίνηση.
